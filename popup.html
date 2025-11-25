@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>X Location Scraper</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      width: 320px;
+      background: #15202b;
+      color: #fff;
+    }
+    .container { padding: 16px; }
+
+    h1 {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 12px;
+      color: #8899a6;
+      margin-bottom: 16px;
+    }
+
+    /* Status Banner */
+    .status-banner {
+      background: #192734;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #657786;
+    }
+    .status-dot.active { background: #1da1f2; animation: pulse 1.5s infinite; }
+    .status-dot.ready { background: #17bf63; }
+    .status-dot.error { background: #e0245e; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .status-text {
+      font-size: 14px;
+      font-weight: 500;
+    }
+    .status-detail {
+      font-size: 12px;
+      color: #8899a6;
+      margin-top: 4px;
+    }
+    .progress-bar {
+      height: 4px;
+      background: #38444d;
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #1da1f2;
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    /* Main Controls */
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .btn {
+      flex: 1;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 9999px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-primary {
+      background: #1da1f2;
+      color: #fff;
+    }
+    .btn-primary:hover:not(:disabled) { background: #1a91da; }
+    .btn-danger {
+      background: #e0245e;
+      color: #fff;
+    }
+    .btn-secondary {
+      background: #38444d;
+      color: #fff;
+    }
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+    }
+
+    /* Results List */
+    .results-section {
+      background: #192734;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #38444d;
+      position: sticky;
+      top: 0;
+      background: #192734;
+    }
+    .results-header h3 {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .results-count {
+      font-size: 12px;
+      color: #8899a6;
+    }
+    .results-list {
+      list-style: none;
+    }
+    .result-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-bottom: 1px solid #38444d;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-region {
+      font-size: 11px;
+      width: 80px;
+      text-align: left;
+      color: #8899a6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .result-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .result-handle {
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+    }
+    .result-location {
+      font-size: 11px;
+      color: #8899a6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .empty-state {
+      padding: 20px;
+      text-align: center;
+      color: #657786;
+      font-size: 13px;
+    }
+
+    /* Export Row */
+    .export-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    /* Manual Lookup (collapsed by default) */
+    .lookup-section {
+      margin-top: 12px;
+      border-top: 1px solid #38444d;
+      padding-top: 12px;
+    }
+    .lookup-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      color: #8899a6;
+      font-size: 12px;
+    }
+    .lookup-toggle:hover { color: #fff; }
+    .lookup-content {
+      display: none;
+      margin-top: 10px;
+    }
+    .lookup-content.open { display: block; }
+    .lookup-input-row {
+      display: flex;
+      gap: 8px;
+    }
+    .lookup-input-row input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #38444d;
+      border-radius: 9999px;
+      background: #192734;
+      color: #fff;
+      font-size: 13px;
+    }
+    .lookup-input-row input::placeholder { color: #657786; }
+    .lookup-input-row input:focus {
+      outline: none;
+      border-color: #1da1f2;
+    }
+    .lookup-result {
+      margin-top: 10px;
+      padding: 10px;
+      background: #192734;
+      border-radius: 8px;
+    }
+    .lookup-result.hidden { display: none; }
+    .lookup-error {
+      margin-top: 10px;
+      padding: 8px;
+      background: rgba(224, 36, 94, 0.2);
+      border-radius: 6px;
+      color: #e0245e;
+      font-size: 12px;
+    }
+    .lookup-error.hidden { display: none; }
+
+    /* Page indicator */
+    .page-indicator {
+      font-size: 11px;
+      color: #657786;
+      margin-bottom: 8px;
+      padding: 6px 10px;
+      background: #192734;
+      border-radius: 6px;
+    }
+    .page-indicator.valid { color: #17bf63; }
+    .page-indicator.invalid { color: #ffad1f; }
+
+    /* Batch Prompt */
+    .batch-prompt {
+      background: #1da1f2;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .batch-prompt.hidden { display: none; }
+    .batch-text {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+    .batch-remaining {
+      font-size: 11px;
+      opacity: 0.8;
+    }
+    .batch-buttons {
+      display: flex;
+      gap: 8px;
+    }
+    .batch-buttons .btn { flex: 1; }
+
+    .credit a { color: #657786; text-decoration: none; }
+    .credit a:hover { color: #1da1f2; }
+
+    .footer {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid #38444d;
+      display: flex;
+      justify-content: center;
+    }
+    .coffee-link {
+      font-size: 11px;
+      color: #657786;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .coffee-link:hover { color: #ffdd00; }
+
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>X Location Scraper</h1>
+    <p class="subtitle">Extract locations from following/followers lists <span class="credit">by <a href="https://x.com/LowHour" target="_blank">@LowHour</a></span></p>
+
+    <!-- Page Status -->
+    <div id="page-indicator" class="page-indicator">
+      Checking page...
+    </div>
+
+    <!-- Query ID Status -->
+    <div id="query-status" class="page-indicator" style="display: none;">
+      Checking query ID...
+    </div>
+
+    <!-- Status Banner -->
+    <div class="status-banner">
+      <div class="status-row">
+        <span id="status-dot" class="status-dot"></span>
+        <span id="status-text" class="status-text">Ready</span>
+      </div>
+      <div id="status-detail" class="status-detail"></div>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Main Controls -->
+    <div class="controls">
+      <button id="start-btn" class="btn btn-primary">Start Scraping</button>
+      <button id="stop-btn" class="btn btn-danger" disabled>Stop</button>
+    </div>
+
+    <!-- Batch Approval -->
+    <div id="batch-prompt" class="batch-prompt hidden">
+      <div class="batch-text">
+        <span id="batch-completed">50</span> done. Continue next 50?
+        <span id="batch-remaining" class="batch-remaining"></span>
+      </div>
+      <div class="batch-buttons">
+        <button id="batch-continue" class="btn btn-primary btn-small">Continue</button>
+        <button id="batch-stop" class="btn btn-secondary btn-small">Stop here</button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-section">
+      <div class="results-header">
+        <h3>Results</h3>
+        <span id="results-count" class="results-count">0 users</span>
+      </div>
+      <ul id="results-list" class="results-list">
+        <li class="empty-state">No results yet. Start scraping!</li>
+      </ul>
+    </div>
+
+    <!-- Export -->
+    <div class="export-row">
+      <button id="table-btn" class="btn btn-primary btn-small">View Table</button>
+      <button id="export-btn" class="btn btn-secondary btn-small">Export CSV</button>
+      <button id="clear-btn" class="btn btn-secondary btn-small">Clear</button>
+    </div>
+
+    <!-- Manual Lookup (tucked away) -->
+    <div class="lookup-section">
+      <div id="lookup-toggle" class="lookup-toggle">
+        <span>Manual Lookup</span>
+        <span id="lookup-arrow">▼</span>
+      </div>
+      <div id="lookup-content" class="lookup-content">
+        <div class="lookup-input-row">
+          <input type="text" id="lookup-input" placeholder="@username">
+          <button id="lookup-btn" class="btn btn-primary btn-small">Lookup</button>
+        </div>
+        <div id="lookup-result" class="lookup-result hidden">
+          <div class="result-item" style="border: none; padding: 0;">
+            <span id="lookup-region" class="result-region"></span>
+            <div class="result-info">
+              <div id="lookup-handle" class="result-handle"></div>
+              <div id="lookup-location" class="result-location"></div>
+            </div>
+          </div>
+        </div>
+        <div id="lookup-error" class="lookup-error hidden"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="https://buymeacoffee.com/lowhour" target="_blank" class="coffee-link">
+        <span>Buy me a coffee</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
